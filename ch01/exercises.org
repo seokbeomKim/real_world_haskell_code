@@ -1,0 +1,38 @@
+#+OPTIONS: indent
+
+* Question 1
+  - 5 + 8 :: Num a => a
+  - 3 * 5 + 8 :: Num a => a
+  - 2 + 4 :: Num a => a
+  - sqrt 16 :: Floating a => a
+  - succ 6 :: (Enum a, Num a) => a
+  - succ 7 :: (Enum a, Num a) => a
+  - pred 9 :: (Enum a, Num a) => a
+  - pred 8 :: (Enum a, Num a) => a
+  - sin (pi / 2) :: Floating a => a
+  - truncate pi :: Integral b => b
+  - round 3.5 :: Integral b => b
+  - round 3.4 :: Integral b => b
+  - floor 3.7 :: Integral b => b
+  - ceiling 3.3 :: Integral b => b
+
+* Question 2
+  - check :show bindings after doing 'let x = 1'
+
+  #+BEGIN_SRC haskell
+    λ> :show bindings
+    it :: Integral b => b = _
+    x :: Num p => p = _
+  #+END_SRC
+
+* Question 3
+  The words function breaks a string up into a list of words . Modify
+  the WC.hs example in order to count the number of words in a file.
+
+  #+BEGIN_SRC haskell
+    -- file: ch01/WC.hs
+    -- lines beginning with "--" are comments.
+
+    main = interact wordCount
+      where wordCount input = show (length (words input)) ++ "\n"
+  #+END_SRC
