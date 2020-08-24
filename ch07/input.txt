@@ -1,0 +1,7 @@
+This is input.txt
+
+Test input
+I like Haskell
+
+I/O is fun
+123456789

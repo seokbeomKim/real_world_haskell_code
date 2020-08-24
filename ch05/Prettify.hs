@@ -1,18 +1,18 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 module Prettify where
 
-import PrettyStub
+import Data.Char
 
 data Doc
   = Empty
-  | Char char
+  | Char Char
   | Text String
   | Line
   | Concat Doc Doc
   | Union Doc Doc
   deriving (Show, Eq)
 
-emtpy :: Doc
-
+empty :: Doc
 empty = Empty
 
 char :: Char -> Doc
@@ -35,7 +35,7 @@ x <> Empty = x
 x <> y = x `Concat` y
 
 hcat :: [Doc] -> Doc
-hcat = fold (<>)
+hcat = fold <>
 
 fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold f = foldr f empty

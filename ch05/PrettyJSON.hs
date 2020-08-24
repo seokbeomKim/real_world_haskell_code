@@ -1,15 +1,19 @@
 -- file ch05/PrettyJSON.hs
+{-# LANGUAGE NoImplicitPrelude #-}
+
+-- 이번 챕터에서 구현할 Prettify 모듈을 이용하여 실제로 값을 출력하는 클라이언트
+-- 코드이다.
+
 module PrettyJSON (renderJValue) where
 
 import Data.Bits (shiftR, (.&.))
 import Data.Char (ord)
+import Data.Int
 import Numeric (showHex)
-import Prettify (Doc, char, compact, double, fsep, hcat, pretty, puncuate, text, (<>))
-import PrettyStub
+import PrettyStub (Doc, char, double, fsep, hcat, text, (<>))
+import PrettyStub as PL
 import SimpleJSON (JValue (..))
-
-enclose :: Char -> Char -> Doc -> Doc
-enclose left right x = char left <> x <> char right
+import Prelude (Bool (False, True), Char, Maybe (Just, Nothing), String)
 
 string :: String -> Doc
 string = enclose '"' '"' . hcat . map oneChar
@@ -30,6 +34,11 @@ simpleEscapes :: [(Char, String)]
 simpleEscapes = zipWith ch "\b\n\f\r\t\\\"/" "bnfrt\\\"/"
   where
     ch a b = (a, ['\\', b])
+
+enclose :: Char -> Char -> Doc -> Doc
+enclose = undefined
+
+-- enclose left right x = char left <> x <> char right
 
 smallHex :: Int -> Doc
 smallHex x =
@@ -60,6 +69,7 @@ series open close item =
     . map item
 
 -- Our Prettify module provides the text,double,and string function
+-- String을 직접 출력하기 보다 Doc 추상 타입을 이용하여 출력한다.
 renderJValue :: JValue -> Doc
 renderJValue (JBool True) = text "true"
 renderJValue (JBool False) = text "false"
