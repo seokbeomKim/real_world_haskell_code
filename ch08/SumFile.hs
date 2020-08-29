@@ -4,6 +4,7 @@
 -- 파일에 대한 I/O로 String 타입이 기본이지만 효율적이지 않다.
 -- 리스트의 각 요소들은 각각 개별적으로 할당되어 일정한 오버헤드를 갖기 때문에,
 -- 메모리 소모나 성능에 영향을 끼친다.
+-- 그렇기 때문에 String 대신에 bytestring을 이용하는 것이 훨씬 효율적이다.
 main = do
     contents <- getContents
     print (sumFile contents)
