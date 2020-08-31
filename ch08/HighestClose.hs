@@ -27,4 +27,4 @@ readPrice str = case L.readInt str of
 highestClose = maximum . (Nothing:) . map closing . L.lines
 highestCloseFrom path = do
     contents <- L.readFile path
-    print $ highestClose contents
+    print $ highestClose contents   
