@@ -17,9 +17,6 @@ simpleParse = undefined
 betterParse :: ParseState -> Either String (a, ParseState)
 betterParse = undefined
 
-identity :: a -> Parse a
-identity a = Parse (\s -> Right (a, s))
-
 {- 클라이언트 코드에서는 파서에 대해서만 신경쓸 뿐 실제 구현부에 대해서는 알
 필요가 없다. 때문에 아래와 같이 Parse만 노출시키고 나머지 부분은 숨김으로서
 클라이언트 코드에서의 접근을 막을 수 있다.
@@ -36,3 +33,13 @@ parse parser initState
     = case runParse parser (ParseState initState 0) of
         Left err         -> Left err
         Right (result,_) -> Right result
+
+-- runParse 함수로써 테스트하기 위한 함수
+identity :: a -> Parse a
+identity a = Parse (\s -> Right (a, s))
+
+{- record syntax는 단순하게 접근자 함수를 위한 용도 외에도 유용하게 사용할 수
+있다. 이미 할당되어 있는 값을 부분적으로 아래와 같이 바꿀수도 있다. -}
+modifyOffset :: ParseState -> Int64 -> ParseState
+modifyOffset initState newOffset =
+    initState { offset = newOffset }
