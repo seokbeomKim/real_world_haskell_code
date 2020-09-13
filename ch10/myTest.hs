@@ -43,3 +43,12 @@ newtype FunctionType a = FT {
 modifyLength :: TestData1 -> Int -> TestData1
 modifyLength initData newVal =
     initData { tlength = newVal }
+
+-- TreeMap에서 정의했던 것처럼 타입 constructor를 데이터 constructor
+-- 내에서 사용할 수 있다.  아래의 data constructor B의 경우,
+-- ComposedType a 를 사용한 것을 볼 수 있다. 여기서 ComposedType
+-- 대신에 일반적인 Data Constructor를 사용하면 에러가 발생하게 된다.
+data ComposedType a = A {
+  cTitle :: String
+  , cLength :: Int
+} | B (ComposedType a) (ComposedType a) deriving (Eq, Show)
