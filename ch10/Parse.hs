@@ -4,6 +4,7 @@ import qualified Data.ByteString.Lazy.Char8    as L8
 import           Data.Char                      ( isSpace )
 import           Data.Int                       ( Int64 )
 import           Data.Word
+import           Control.Applicative
 
 data ParseState = ParseState {
       string :: L.ByteString
@@ -46,38 +47,54 @@ modifyOffset initState newOffset = initState { offset = newOffset }
 parseByte :: Parse Word8
 parseByte =
   -- 아래의 (==>) 함수는 두 개의 parser들을 연결하는 역할을 한다.
-  getState ==> \initState ->
+            getState ==> \initState ->
   -- uncons는 첫번째 요소를 가져오는 역할을 한다.
-  case L.uncons (string initState) of
-    Nothing ->
-        bail "no more input"
-    Just (byte,remainder) ->
-        putState newState ==> \_ ->
-        identity byte
-      where newState = initState { string = remainder,
-                                   offset = newOffset }
-            newOffset = offset initState + 1
+                                       case L.uncons (string initState) of
+  Nothing                -> bail "no more input"
+  Just (byte, remainder) -> putState newState ==> \_ -> identity byte
+   where
+    newState  = initState { string = remainder, offset = newOffset }
+    newOffset = offset initState + 1
 
 -- getState와 putState에서 한 가지 눈여겨 볼 것은, 함수의 반환이
 -- 반드시 값이 아니라는 것이다. 즉, 리턴 값이 함수인 경우도 가능하기에
 -- currying을 위해서 아래와 같이 접근자들을 구현할 수 있다. 즉,
 -- 함수들을 이용하여 또 다른 함수를 정의하는 방법이다.
 getState :: Parse ParseState
-getState = Parse (\s -> Right (s,s))
+getState = Parse (\s -> Right (s, s))
 
 putState :: ParseState -> Parse ()
 putState s = Parse (\_ -> Right ((), s))
 
 bail :: String -> Parse a
-bail err = Parse $ \s -> Left $
-           "byte offset " ++ show (offset s) ++ ": " ++ err
+bail err =
+  Parse $ \s -> Left $ "byte offset " ++ show (offset s) ++ ": " ++ err
 
 
 (==>) :: Parse a -> (a -> Parse b) -> Parse b
 firstParser ==> secondParser = Parse chainedParser
-  where chainedParser initState =
-          case runParse firstParser initState of
-            Left errMessage ->
-              Left errMessage
-            Right (firstResult, newState) ->
-              runParse (secondParser firstResult) newState
+ where
+  chainedParser initState = case runParse firstParser initState of
+    Left errMessage -> Left errMessage
+    Right (firstResult, newState) ->
+      runParse (secondParser firstResult) newState
+
+instance Functor Parse where
+  fmap f parser = parser ==> \result -> identity (f result)
+
+w2c :: Word8 -> Char
+w2c = chr . fromIntegral
+
+parseChar :: Parse Char
+parseChar = w2c <$> parseByte
+
+peekByte :: Parse (Maybe Word8)
+peekByte = (fmap fst . L.uncons . string) <$> getState
+
+peekChar :: Parse (Maybe Char)
+peekChar = fmap w2c <$> peekByte
+
+parseWhile :: (Word8 -> Bool) -> Parse [Word8]
+parseWhile p = (fmap p <$> peekByte) ==> \mp -> if mp == Just True
+  then parseByte ==> \b -> (b :) <$> parseWhile p
+  else identity []
