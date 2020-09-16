@@ -1,10 +1,12 @@
 -- file: ch10/Parse.hs
-import qualified Data.ByteString.Lazy          as L
-import qualified Data.ByteString.Lazy.Char8    as L8
-import           Data.Char                      ( isSpace )
-import           Data.Int                       ( Int64 )
-import           Data.Word
+-- ch12예제에서 응용하므로 재 정리한다.
+
 import           Control.Applicative
+import qualified Data.ByteString.Lazy       as L
+import qualified Data.ByteString.Lazy.Char8 as L8
+import           Data.Char                  (isSpace)
+import           Data.Int                   (Int64)
+import           Data.Word
 
 data ParseState = ParseState {
       string :: L.ByteString
