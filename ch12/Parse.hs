@@ -1,6 +1,9 @@
 -- file: ch10/Parse.hs
 -- ch12예제에서 응용하므로 재 정리한다.
 
+-- 10장에서 언급된대로 PGM (portable gray map)을 파싱하기 위한 파서를 구현한
+-- 코드이다. PGM은 실제로는 포맷 한 개가 아니라 두 개로 구성되어 있다. (P2/P5)
+
 import           Control.Applicative
 import qualified Data.ByteString.Lazy       as L
 import qualified Data.ByteString.Lazy.Char8 as L8
