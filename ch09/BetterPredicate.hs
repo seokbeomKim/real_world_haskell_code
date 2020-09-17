@@ -10,6 +10,7 @@ import           System.FilePath   (takeExtensions)
 import           System.IO         (IOMode (..), hClose, hFileSize, openFile)
 
 -- the function we wrote earlier
+import           Exception         (Exception)
 import           RecursiveContents (getRecursiveContents)
 
 betterFind :: Predicate -> FilePath -> IO [FilePath]
@@ -62,7 +63,8 @@ resource를 얻었을 때 어떻게 할 것인지, use 액션을 정의한다. �
 
 getFileSize :: FilePath -> IO (Maybe Integer)
 getFileSize path =
-  handle (\_ -> return Nothing) $ bracket (openFile path ReadMode) hClose
+  handle (\_ -> return Nothing)
+    $ bracket (openFile path ReadMode) hClose
     $ \h -> do
         size <- hFileSize h
         return (Just size)

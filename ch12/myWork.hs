@@ -1,5 +1,6 @@
 import qualified Data.ByteString.Lazy      as L
 import           Data.ByteString.Lazy.UTF8 (fromString)
+import qualified Data.ByteString.Lazy.UTF8 as UL
 
 -- concat :: Foldable t => t [a] -> [a]
 -- 예를 들어, concat [[1,2,3,4],[5,6,7,8]] 은 [1,2,3,4,5,6,7,8] 이 된다.
@@ -31,3 +32,15 @@ instance Show Greymap where
 
 -- Hoogle을 이용하여 String -> ByteString으로 변환 가능한 함수를 찾는다.
 x = Greymap 10 20 30 (fromString "qwer")
+
+-- as symbol(@) 연습하기 위해 아래와 같이 String에 대한 배열을 Split 한 것으로
+-- 임의 함수를 만든다.
+-- let .. in 구문은 where 구문의 반대 시퀀스를 갖는다.
+testSplitString :: L.ByteString -> String
+testSplitString str = let len = UL.length str
+                          both@(first,_) = L.splitAt 1 str
+                      in if len < 4
+                         then
+                            show "less than 4"
+                         else
+                            show first

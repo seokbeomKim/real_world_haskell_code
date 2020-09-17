@@ -45,7 +45,7 @@ getBytes n str = let count = fromIntegral n
                      both@(prefix,_) = L.splitAt count str
                  in if L.length prefix < count
                     -- 여기서 prefix의 길이가 count 값보다 작다면 아래와 같이 처리한다.
-                    -- TODO as symbol(@) 및 let-in 구문 연습하기
+                    -- DONE as symbol(@) 및 let-in 구문 연습하기
                     then Nothing
                     else Just both
 
