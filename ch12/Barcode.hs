@@ -11,6 +11,7 @@ import qualified Data.Map                   as M
 import           Data.Maybe                 (catMaybes, listToMaybe)
 import           Data.Ratio                 (Ratio)
 import           Data.Word                  (Word8)
+import           System.Directory
 import           System.Environment         (getArgs)
 
 checkDigit :: (Integral a) => [a] -> a
@@ -88,3 +89,13 @@ parseRawPPM =
     parseByte ==>&
     parseTimes (width * height) parseRGB ==> \pxs ->
       identity (listArray ((0,0),(width-1,height-1)) pxs)
+
+parseRGB :: Parse RGB
+parseRGB = parseByte ==> \r ->
+           parseByte ==> \g ->
+           parseByte ==> \b ->
+           identity (r,g,b)
+
+parseTimes :: Int -> Parse a -> Parse [a]
+parseTimes 0 _ = identity []
+parseTimes n p = p ==> \x -> (x:) <$> parseTimes (n-1) p

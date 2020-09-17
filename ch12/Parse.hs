@@ -1,3 +1,4 @@
+module BarcodeParser where
 -- file: ch10/Parse.hs
 -- ch12예제에서 응용하므로 재 정리한다.
 
@@ -7,20 +8,24 @@
 import           Control.Applicative
 import qualified Data.ByteString.Lazy       as L
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Char                  (isSpace)
+import           Data.Char                  (chr, isSpace)
 import           Data.Int                   (Int64)
 import           Data.Word
 
-data ParseState = ParseState {
-      string :: L.ByteString
-    , offset :: Int64
-} deriving (Show)
+-- 아래 데이터 타입을 통해 현재 파싱 위치와 남은 ByteString 정보를 얻는다.
+data ParseState = ParseState
+  { string :: L.ByteString,
+    offset :: Int64
+  }
+  deriving (Show)
 
+-- 아래와 같은 함수를 생각해볼 수 있다. 초기 state를 가지고 파싱을 시작하면,
+-- 이후 오프셋 정보와 함께 튜플 형태로 함께 관리하는 방법이다.
 simpleParse :: ParseState -> (a, ParseState)
 simpleParse = undefined
 
-{- 파싱에 실패할 경우 에러메시지를 출력할 수 있도록 위의 simpleParse를 간단하게
-변형할 수 있다. -}
+-- 파싱에 실패할 경우 에러메시지를 출력할 수 있도록 위의 simpleParse를 간단하게
+-- 변형할 수 있다.
 betterParse :: ParseState -> Either String (a, ParseState)
 betterParse = undefined
 
@@ -31,35 +36,36 @@ betterParse = undefined
 newtype 정의는 컴파일 타임 wrapper이므로 runtime에서의 오버헤드가 전혀 없다.
 이후 클라이언트 코드에서 파서를 사용할 수 있도록 runParse 접근자를 구현할
 것이다. -}
-newtype Parse a = Parse {
-    runParse :: ParseState -> Either String (a, ParseState)
-}
+newtype Parse a = Parse
+  { runParse :: ParseState -> Either String (a, ParseState)
+  }
 
-parse :: Parse a -> L.ByteString -> Either String a
-parse parser initState = case runParse parser (ParseState initState 0) of
-  Left  err         -> Left err
-  Right (result, _) -> Right result
-
--- runParse 함수로써 테스트하기 위한 함수
+-- 파서 예제 1: identity parser
 identity :: a -> Parse a
 identity a = Parse (\s -> Right (a, s))
+
+-- 앞서 명시한 Parse wrapper를 조작하여 실제 runParse 함수를 사용할 수 있도록
+-- unwrapping하는 함수이다.
+parse :: Parse a -> L.ByteString -> Either String a
+parse parser initState = case runParse parser (ParseState initState 0) of
+  Left err          -> Left err
+  Right (result, _) -> Right result
 
 {- record syntax는 단순하게 접근자 함수를 위한 용도 외에도 유용하게 사용할 수
 있다. 이미 할당되어 있는 값을 부분적으로 아래와 같이 바꿀수도 있다. -}
 modifyOffset :: ParseState -> Int64 -> ParseState
-modifyOffset initState newOffset = initState { offset = newOffset }
+modifyOffset initState newOffset = initState {offset = newOffset}
 
+-- parse parseByte $ L8.pack "foo"로 테스트해볼 수 있다.
 parseByte :: Parse Word8
 parseByte =
-  -- 아래의 (==>) 함수는 두 개의 parser들을 연결하는 역할을 한다.
-            getState ==> \initState ->
-  -- uncons는 첫번째 요소를 가져오는 역할을 한다.
-                                       case L.uncons (string initState) of
-  Nothing                -> bail "no more input"
-  Just (byte, remainder) -> putState newState ==> \_ -> identity byte
-   where
-    newState  = initState { string = remainder, offset = newOffset }
-    newOffset = offset initState + 1
+  getState ==> \initState ->
+    case L.uncons (string initState) of
+      Nothing -> bail "no more input"
+      Just (byte, remainder) -> putState newState ==> \_ -> identity byte
+        where
+          newState = initState {string = remainder, offset = newOffset}
+          newOffset = offset initState + 1
 
 -- getState와 putState에서 한 가지 눈여겨 볼 것은, 함수의 반환이
 -- 반드시 값이 아니라는 것이다. 즉, 리턴 값이 함수인 경우도 가능하기에
@@ -75,14 +81,13 @@ bail :: String -> Parse a
 bail err =
   Parse $ \s -> Left $ "byte offset " ++ show (offset s) ++ ": " ++ err
 
-
 (==>) :: Parse a -> (a -> Parse b) -> Parse b
 firstParser ==> secondParser = Parse chainedParser
- where
-  chainedParser initState = case runParse firstParser initState of
-    Left errMessage -> Left errMessage
-    Right (firstResult, newState) ->
-      runParse (secondParser firstResult) newState
+  where
+    chainedParser initState = case runParse firstParser initState of
+      Left errMessage -> Left errMessage
+      Right (firstResult, newState) ->
+        runParse (secondParser firstResult) newState
 
 instance Functor Parse where
   fmap f parser = parser ==> \result -> identity (f result)
@@ -100,6 +105,8 @@ peekChar :: Parse (Maybe Char)
 peekChar = fmap w2c <$> peekByte
 
 parseWhile :: (Word8 -> Bool) -> Parse [Word8]
-parseWhile p = (fmap p <$> peekByte) ==> \mp -> if mp == Just True
-  then parseByte ==> \b -> (b :) <$> parseWhile p
-  else identity []
+parseWhile p =
+  (fmap p <$> peekByte) ==> \mp ->
+    if mp == Just True
+      then parseByte ==> \b -> (b :) <$> parseWhile p
+      else identity []
