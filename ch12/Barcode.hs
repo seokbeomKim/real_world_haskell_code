@@ -11,6 +11,7 @@ import qualified Data.Map                   as M
 import           Data.Maybe                 (catMaybes, listToMaybe)
 import           Data.Ratio                 (Ratio)
 import           Data.Word                  (Word8)
+import           Parse
 import           System.Directory
 import           System.Environment         (getArgs)
 
@@ -80,7 +81,7 @@ type Pixmap = Array (Int, Int) RGB
 
 parseRawPPM :: Parse Pixmap
 parseRawPPM =
-    parseWhileWith w3c (/= '\n') ==> \header -> skipSpaces ==>&
+    parseWhileWith w2c (/= '\n') ==> \header -> skipSpaces ==>&
     assert (header == "P6") "invalid raw header" ==>&
     parseNat ==> \width -> skipSpaces ==>&
     parseNat ==> \height -> skipSpaces ==>&
@@ -99,3 +100,29 @@ parseRGB = parseByte ==> \r ->
 parseTimes :: Int -> Parse a -> Parse [a]
 parseTimes 0 _ = identity []
 parseTimes n p = p ==> \x -> (x:) <$> parseTimes (n-1) p
+
+-- 아래는 타입을 정의하는 것이므로, RunLength는 data constructor가
+-- 튜플로 갖는 타입에 따라 타입 a가 정의된다.
+type Run = Int
+type RunLength a = [(Run, a)]
+
+runLength :: Eq a => [a] -> RunLength a
+runLength = map rle . group
+  where rle xs = (length xs, head xs)
+
+type Score = Ratio Int
+
+scaleToOne :: [Run] -> [Score]
+scaleToOne xs = map divide xs
+  where divide d = fromIntegral d / divisor
+        divisor = fromIntegral (sum xs)
+
+type ScoreTable = [[Score]]
+
+asSRL :: [String] -> ScoreTable
+asSRL = map (scaleToOne . runLengths)
+
+leftOddSRL = asSRL leftOddList
+leftEvenSRL = asSRL leftEvenList
+rightSRL = asSRL rightList
+paritySRL = asSRL parityList

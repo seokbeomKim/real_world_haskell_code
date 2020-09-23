@@ -1,4 +1,4 @@
-module BarcodeParser where
+module Parse where
 -- file: ch10/Parse.hs
 -- ch12예제에서 응용하므로 재 정리한다.
 
@@ -110,3 +110,6 @@ parseWhile p =
     if mp == Just True
       then parseByte ==> \b -> (b :) <$> parseWhile p
       else identity []
+
+parseWhileWith :: (Word8 -> a) -> (a -> Bool) -> Parse [a]
+parseWhileWith f p = fmap f <$> parseWhile (p . f)

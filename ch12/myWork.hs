@@ -1,6 +1,7 @@
 import qualified Data.ByteString.Lazy      as L
 import           Data.ByteString.Lazy.UTF8 (fromString)
 import qualified Data.ByteString.Lazy.UTF8 as UL
+import Data.Ratio (Ratio)
 
 -- concat :: Foldable t => t [a] -> [a]
 -- 예를 들어, concat [[1,2,3,4],[5,6,7,8]] 은 [1,2,3,4,5,6,7,8] 이 된다.
@@ -44,3 +45,10 @@ testSplitString str = let len = UL.length str
                             show "less than 4"
                          else
                             show first
+type Run = Int
+type Score = Ratio Int
+
+scaleToOne :: [Run] -> [Score]
+scaleToOne xs = map divide xs
+  where divide d = fromIntegral d / divisor
+        divisor = fromIntegral (sum xs)
