@@ -8,7 +8,7 @@ module Parse where
 import           Control.Applicative
 import qualified Data.ByteString.Lazy       as L
 import qualified Data.ByteString.Lazy.Char8 as L8
-import           Data.Char                  (chr, isSpace)
+import           Data.Char                  (chr, isSpace, isDigit)
 import           Data.Int                   (Int64)
 import           Data.Word
 
@@ -104,6 +104,9 @@ peekByte = (fmap fst . L.uncons . string) <$> getState
 peekChar :: Parse (Maybe Char)
 peekChar = fmap w2c <$> peekByte
 
+(==>&) :: Parse a -> Parse b -> Parse b
+p ==>& f = p ==> \_ -> f
+
 parseWhile :: (Word8 -> Bool) -> Parse [Word8]
 parseWhile p =
   (fmap p <$> peekByte) ==> \mp ->
@@ -113,3 +116,20 @@ parseWhile p =
 
 parseWhileWith :: (Word8 -> a) -> (a -> Bool) -> Parse [a]
 parseWhileWith f p = fmap f <$> parseWhile (p . f)
+
+parseNat :: Parse Int
+parseNat = parseWhileWith w2c isDigit ==> \digits ->
+  if null digits
+  then bail "no more input"
+  else let n = read digits
+           in if n < 0
+              then bail "integer overflow"
+              else identity n
+
+skipSpaces :: Parse ()
+skipSpaces = parseWhileWith w2c isSpace ==>& identity ()
+
+
+assert :: Bool -> String -> Parse ()
+assert True _ = identity ()
+assert False err = bail err

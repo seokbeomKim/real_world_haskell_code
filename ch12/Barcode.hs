@@ -1,44 +1,89 @@
 -- EAN-13 바코드 해석 코드
 
-import           Control.Applicative        ((<$>))
-import           Data.Array                 (Array (..), bounds, elems, indices,
-                                             ixmap, listArray, (!))
-import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.Char                  (digitToInt)
-import           Data.Ix                    (Ix (..))
-import           Data.List                  (foldl', group, sort, sortBy, tails)
-import qualified Data.Map                   as M
-import           Data.Maybe                 (catMaybes, listToMaybe)
-import           Data.Ratio                 (Ratio)
-import           Data.Word                  (Word8)
-import           Parse
+import           Control.Applicative            ( (<$>) )
+import           Data.Array                     ( Array(..)
+                                                , bounds
+                                                , elems
+                                                , indices
+                                                , ixmap
+                                                , listArray
+                                                , (!)
+                                                )
+import qualified Data.ByteString.Lazy.Char8    as L
+import           Data.Char                      ( digitToInt )
+import           Data.Ix                        ( Ix(..) )
+import           Data.List                      ( foldl'
+                                                , group
+                                                , sort
+                                                , sortBy
+                                                , tails
+                                                )
+import qualified Data.Map                      as M
+import           Data.Maybe                     ( catMaybes
+                                                , listToMaybe
+                                                )
+import           Data.Ratio                     ( Ratio )
+import           Data.Word                      ( Word8 )
+import qualified Parse                         as P
+                                                ( (==>)
+                                                , Parse
+                                                , parseWhileWith
+                                                , w2c
+                                                , skipSpaces
+                                                , parseNat
+                                                , parseByte
+                                                , (==>&)
+                                                , assert
+                                                , identity
+                                                )
+
 import           System.Directory
-import           System.Environment         (getArgs)
+import           System.Environment             ( getArgs )
 
 checkDigit :: (Integral a) => [a] -> a
 checkDigit ds = (sum products `mod` 10)
-  where products = mapEveryOther (*3) (reverse ds)
+  where products = mapEveryOther (* 3) (reverse ds)
 
 mapEveryOther :: (a -> a) -> [a] -> [a]
-mapEveryOther f = zipWith ($) (cycle [f,id])
+mapEveryOther f = zipWith ($) (cycle [f, id])
 
-leftOddList = ["0001101", "0011001", "0010011", "0111101", "0100011",
-               "0110001", "0101111", "0111011", "0110111", "0001011"]
+leftOddList =
+  [ "0001101"
+  , "0011001"
+  , "0010011"
+  , "0111101"
+  , "0100011"
+  , "0110001"
+  , "0101111"
+  , "0111011"
+  , "0110111"
+  , "0001011"
+  ]
 
 -- leftOddList는 [ [Char] ] 이므로, [Char] 에 대해 complement를 fmap
 -- 해준 후에 이를 다시 map으로 해줘야 한다.
 rightList = map complement <$> leftOddList
-  where complement '0' = '1'
-        complement '1' = '0'
+ where
+  complement '0' = '1'
+  complement '1' = '0'
 
 leftEvenList = map reverse rightList
 
-parityList = ["111111", "110100", "110010", "110001", "101100",
-              "100110", "100011", "101010", "101001", "100101"]
+parityList =
+  [ "111111"
+  , "110100"
+  , "110010"
+  , "110001"
+  , "101100"
+  , "100110"
+  , "100011"
+  , "101010"
+  , "101001"
+  , "100101"
+  ]
 
 listToArray :: [a] -> Array Int a
-listToArray xs = listArray (0,l-1) xs
-  where l = length xs
+listToArray xs = listArray (0, l - 1) xs where l = length xs
 
 leftOddCodes = listToArray leftOddList
 leftEvenCodes = listToArray leftEvenList
@@ -49,9 +94,9 @@ foldA :: Ix k => (a -> b -> a) -> a -> Array k b -> a
 
 -- indices 함수는 Array a가 가지고 있는 인덱스들을 반환한다.
 foldA f s a = go s (indices a)
-  where go s (j:js) = let s' = f s (a ! j)
-                      in s' `seq` go s' js
-        go s _ = s
+ where
+  go s (j : js) = let s' = f s (a ! j) in s' `seq` go s' js
+  go s _        = s
 
 foldA1 :: Ix k => (a -> a -> a) -> Array k a -> a
 foldA1 f a = foldA f (a ! fst (bounds a)) a
@@ -60,11 +105,12 @@ encodeEAN13 :: String -> String
 encodeEAN13 = concat . encodeDigits . map digitToInt
 
 encodeDigits :: [Int] -> [String]
-encodeDigits s@(first:rest) =
-    outerGuard : lefties ++ centerGuard : righties ++ [outerGuard]
-  where (left, right) = splitAt 5 rest
-        lefties = zipWith leftEncode (parityCodes ! first) left
-        righties = map rightEncode (right ++ [checkDigit s])
+encodeDigits s@(first : rest) =
+  outerGuard : lefties ++ centerGuard : righties ++ [outerGuard]
+ where
+  (left, right) = splitAt 5 rest
+  lefties       = zipWith leftEncode (parityCodes ! first) left
+  righties      = map rightEncode (right ++ [checkDigit s])
 
 leftEncode :: Char -> Int -> String
 leftEncode '1' = (leftOddCodes !)
@@ -79,27 +125,26 @@ type Pixel = Word8
 type RGB = (Pixel, Pixel, Pixel)
 type Pixmap = Array (Int, Int) RGB
 
-parseRawPPM :: Parse Pixmap
-parseRawPPM =
-    parseWhileWith w2c (/= '\n') ==> \header -> skipSpaces ==>&
-    assert (header == "P6") "invalid raw header" ==>&
-    parseNat ==> \width -> skipSpaces ==>&
-    parseNat ==> \height -> skipSpaces ==>&
-    parseNat ==> \maxValue ->
-    assert (maxValue == 255) "max value out of spec" ==>&
-    parseByte ==>&
-    parseTimes (width * height) parseRGB ==> \pxs ->
-      identity (listArray ((0,0),(width-1,height-1)) pxs)
+parseRawPPM :: P.Parse Pixmap
+parseRawPPM = P.parseWhileWith P.w2c (/= '\n') P.==> \header ->
+  P.skipSpaces
+    P.==>& P.assert (header == "P6") "invalid raw header"
+    P.==>& P.parseNat
+    P.==>  \width -> P.skipSpaces P.==>& P.parseNat P.==> \height ->
+             P.skipSpaces P.==>& P.parseNat P.==> \maxValue ->
+               P.assert (maxValue == 255) "max value out of spec"
+                 P.==>& P.parseByte
+                 P.==>& parseTimes (width * height) parseRGB
+                 P.==>  \pxs -> P.identity
+                          (listArray ((0, 0), (width - 1, height - 1)) pxs)
 
-parseRGB :: Parse RGB
-parseRGB = parseByte ==> \r ->
-           parseByte ==> \g ->
-           parseByte ==> \b ->
-           identity (r,g,b)
+parseRGB :: P.Parse RGB
+parseRGB = P.parseByte P.==> \r ->
+  P.parseByte P.==> \g -> P.parseByte P.==> \b -> P.identity (r, g, b)
 
-parseTimes :: Int -> Parse a -> Parse [a]
-parseTimes 0 _ = identity []
-parseTimes n p = p ==> \x -> (x:) <$> parseTimes (n-1) p
+parseTimes :: Int -> P.Parse a -> P.Parse [a]
+parseTimes 0 _ = P.identity []
+parseTimes n p = p P.==> \x -> (x :) <$> parseTimes (n - 1) p
 
 -- 아래는 타입을 정의하는 것이므로, RunLength는 data constructor가
 -- 튜플로 갖는 타입에 따라 타입 a가 정의된다.
@@ -107,18 +152,25 @@ type Run = Int
 type RunLength a = [(Run, a)]
 
 runLength :: Eq a => [a] -> RunLength a
-runLength = map rle . group
-  where rle xs = (length xs, head xs)
+runLength = map rle . group where rle xs = (length xs, head xs)
 
 type Score = Ratio Int
 
 scaleToOne :: [Run] -> [Score]
 scaleToOne xs = map divide xs
-  where divide d = fromIntegral d / divisor
-        divisor = fromIntegral (sum xs)
+ where
+  divide d = fromIntegral d / divisor
+  divisor = fromIntegral (sum xs)
 
 type ScoreTable = [[Score]]
+type Digit = Int
 
+bestScores :: ScoreTable -> [Run] -> [(Score, Digit)]
+bestScores srl ps = take 3 . sort $ scores
+  where scores = zip [distance d (scaleToOne ps) | d <- srl] digits
+        digits = [0..9]
+
+-- SRL은 Scaled Run Length라는 의미이다.
 asSRL :: [String] -> ScoreTable
 asSRL = map (scaleToOne . runLengths)
 
@@ -127,16 +179,22 @@ leftEvenSRL = asSRL leftEvenList
 rightSRL = asSRL rightList
 paritySRL = asSRL parityList
 
+-- zipWith로 a와 b를 합치면서 (적은 쪽으로 원소 개수 통합) 전달한
+-- 함수를 함께 수행한다.
+distance :: [Score] -> [Score] -> Score
+distance a b = sum . map abs $ zipWith (-) a b
+
 -- RGB 기반으로 greyscale 이미지로 변환하는 함수를 구현한다.
 luminance :: (Pixel, Pixel, Pixel) -> Pixel
-luminance (r,g,b) = round (r' * 0.30 + g' * 0.59 + b' * 0.11)
-  where r' = fromIntegral r
-        g' = fromIntegral g
-        b' = fromIntegral b
+luminance (r, g, b) = round (r' * 0.30 + g' * 0.59 + b' * 0.11)
+ where
+  r' = fromIntegral r
+  g' = fromIntegral g
+  b' = fromIntegral b
 
-type Greymap = Array (Int,Int) Pixel
+type Greymap = Array (Int, Int) Pixel
 
-pixelToGreymap :: Pixel -> Greymap
+pixelToGreymap :: Pixmap -> Greymap
 pixelToGreymap = fmap luminance
 
 data Bit = Zero | One
@@ -144,9 +202,13 @@ data Bit = Zero | One
 
 threshold :: (Ix k, Integral a) => Double -> Array k a -> Array k Bit
 threshold n a = binary <$> a
-  where binary | i < pivot = Zero
-               | otherwise = One
-        pivot = round $ least + (greatest - least) * n
-        least = fromIntegral $ choose (<) a
-        greatest = fromIntegral $ choose (>) a
-        choose f = foldA1 $ \x y -> if f x y then x else y
+ where
+  binary i | i < pivot = Zero
+           | otherwise = One
+  pivot    = round $ least + (greatest - least) * n
+  least    = fromIntegral $ choose (<) a
+  greatest = fromIntegral $ choose (>) a
+  choose f = foldA1 $ \x y -> if f x y then x else y
+
+runLengths :: Eq a => [a] -> [Run]
+runLengths = map fst . runLength

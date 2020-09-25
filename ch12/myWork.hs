@@ -48,7 +48,16 @@ testSplitString str = let len = UL.length str
 type Run = Int
 type Score = Ratio Int
 
+-- scaleToTone은 각 원소들을 모두 합한 값으로 각 원소들을 나누는
+-- 함수이다.
 scaleToOne :: [Run] -> [Score]
 scaleToOne xs = map divide xs
   where divide d = fromIntegral d / divisor
         divisor = fromIntegral (sum xs)
+
+-- scaleToOne을 응용하여 배열로 전달된 정수들의 평균값을 원소에 곱하여
+-- 새로운 배열을 만들도록 간단하게 함수를 짜볼 수 있을 것이다.
+multipleAverageOfArray :: Fractional b => [b] -> [b]
+multipleAverageOfArray xs = map multiple xs
+  where multiple f = f * avg
+        avg = (sum xs) / fromIntegral (length xs)
