@@ -61,3 +61,12 @@ multipleAverageOfArray :: Fractional b => [b] -> [b]
 multipleAverageOfArray xs = map multiple xs
   where multiple f = f * avg
         avg = (sum xs) / fromIntegral (length xs)
+
+-- List Comprehensions
+-- 리스트 생성을 위해 아래와 같이 생성할 수 있다.
+-- [ (a,b) | a <- [1,2], b <- "abc" ]
+-- 위의 파이프 기호를 기준으로 왼쪽 부분은 오른쪽 정의역으로 정의된다.
+x = [ (a,b) | a <- [1..6], b <- [5..7], even (a + b ^ 2) ]
+
+-- 또한 위 표현식과 같이 조건식을 추가하여 False인 경우에는 리스트에
+-- 포함되지 않도록 설정할 수 있다.

@@ -25,18 +25,19 @@ import           Data.Maybe                     ( catMaybes
 import           Data.Ratio                     ( Ratio )
 import           Data.Word                      ( Word8 )
 import qualified Parse                         as P
-                                                ( (==>)
-                                                , Parse
-                                                , parseWhileWith
-                                                , w2c
-                                                , skipSpaces
-                                                , parseNat
-                                                , parseByte
-                                                , (==>&)
+                                                ( Parse
                                                 , assert
                                                 , identity
+                                                , parseByte
+                                                , parseNat
+                                                , parseWhileWith
+                                                , skipSpaces
+                                                , w2c
+                                                , (==>)
+                                                , (==>&)
                                                 )
 
+import           Data.Function                  ( on )
 import           System.Directory
 import           System.Environment             ( getArgs )
 
@@ -163,12 +164,13 @@ scaleToOne xs = map divide xs
   divisor = fromIntegral (sum xs)
 
 type ScoreTable = [[Score]]
-type Digit = Int
+type Digit = Word8
 
 bestScores :: ScoreTable -> [Run] -> [(Score, Digit)]
 bestScores srl ps = take 3 . sort $ scores
-  where scores = zip [distance d (scaleToOne ps) | d <- srl] digits
-        digits = [0..9]
+ where
+  scores = zip [ distance d (scaleToOne ps) | d <- srl ] digits
+  digits = [0 .. 9]
 
 -- SRL은 Scaled Run Length라는 의미이다.
 asSRL :: [String] -> ScoreTable
@@ -212,3 +214,67 @@ threshold n a = binary <$> a
 
 runLengths :: Eq a => [a] -> [Run]
 runLengths = map fst . runLength
+
+data Parity a = Even a | Odd a | None a
+              deriving (Show)
+
+-- parity table에서 찾은 것인지 odd table에서 찾은 건지 확인하기 위해
+-- 아래와 같이 함수를 구현한다.
+fromParity :: Parity a -> a
+fromParity (Even a) = a
+fromParity (Odd  a) = a
+fromParity (None a) = a
+
+parityMap :: (a -> b) -> Parity a -> Parity b
+parityMap f (Even a) = Even (f a)
+parityMap f (Odd  a) = Odd (f a)
+parityMap f (None a) = None (f a)
+
+instance Functor Parity where
+  fmap = parityMap
+
+-- `on`은 Data.Function 에 있는 함수로서 아래와 같은 타입 정의를 갖는다.
+-- on :: (a -> a -> b) -> (c -> a) -> c -> c -> b
+-- on f g x y = g x `f` g y
+-- 타입을 살펴보면, 함수 2개를 받아 2번째 함수를 1번째 함수에 그대로 적용한다.
+compareWithoutParity = compare `on` fromParity
+
+bestLeft :: [Run] -> [Parity (Score, Digit)]
+bestLeft ps = sortBy compareWithoutParity ((map Odd (bestScores leftOddSRL ps)) ++
+                                          (map Even (bestScores leftEvenSRL ps)))
+
+bestRight :: [Run] -> [Parity (Score, Digit)]
+bestRight = map None . bestScores rightSRL
+
+-- 아래와 같이 안하는 이유는 기대하는 결과값이 달라지기 때문
+-- length . show $ AltEven 1  --> 27의 결과값을 출력한다.
+data AltParity a = AltEven {fromAltParity :: a}
+                 | AltOdd  {fromAltParity :: a}
+                 | AltNone {fromAltParity :: a}
+                 deriving (Show)
+
+chunkWith :: ([a] -> ([a], [a])) -> [a] -> [[a]]
+chunkWith _ [] = []
+chunkWith f xs = let (h, t) = f xs
+                 in h : chunkWith f t
+
+chunksOf :: Int -> [a] -> [[a]]
+chunksOf n = chunkWith (splitAt n)
+
+candidateDigits :: RunLength Bit -> [[Parity Digit]]
+candidateDigits ((_. One) : _) = []
+candidateDigits rle | length rle < 59 = []
+
+type DigitMap = Map Digit
+type ParityMap = Map (Parity Digit)
+
+updateMap :: Parity Digit
+          -> Digit
+          -> [Parity Digit]
+          -> ParityMap
+          -> ParityMap
+updateMap digit key seq = insertMap key (fromParity digit) (digit:seq)
+
+insertMap :: Digit -> Digit -> [a] -> Map a -> Map a
+insertMap key digit val m = val `seq` M.insert key' val m
+  where key' = (key + digit) `mod` 10
