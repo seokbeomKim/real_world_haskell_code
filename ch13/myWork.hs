@@ -19,6 +19,7 @@ main = do
 -- 디렉토리의 파일들의 권한을 검사하여 readable인지, writable인지,
 -- executable인지 판단할 수 있는 간단한 함수를 만들어보자. 데이터는
 -- 미리 파일 형태로 준비한다.
+
 type Readable = Bool
 type Writable = Bool
 type Executable = Bool
