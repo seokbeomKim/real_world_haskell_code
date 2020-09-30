@@ -12,16 +12,22 @@ module Logger
   , record
   ) where
 
+import Control.Monad
+
 -- Logger는 purely a type constructor이므로 사용자 코드에서 직접
 -- 접근하여 오브젝트를 생성할 필요는 없다.
 newtype Logger a = Logger { execLogger :: (a, Log) }
 
 globToRegex :: String -> Logger String
 globToRegex cs =
-  globToRegex' cs Logger.>>= \ds -> return ('^':ds)
+  globToRegex' cs Logger.>>= \ds ->
+  return ('^':ds)
 
 globToRegex' :: String -> Logger String
-globToRegex' "" = return "$"
+globToRegex' ('?':cs) =
+  record "any" >>
+  globToRegex' cs Logger.>>= \ds ->
+  return ('.':ds)
 
 type Log = [String]
 
@@ -37,7 +43,7 @@ record s = Logger ((), [s])
 instance Monad Logger where
   return a = Logger (a, [])
 
--- (>>=) :: Logger a -> (a -> Logger b) -> Logger b
+(>>=) :: Logger a -> (a -> Logger b) -> Logger b
 -- Monad를 이용할 경우 action과 monadic function을 결합할 수 있다.
 m >>= k = let (a, w) = execLogger m
               n = k a
