@@ -2,6 +2,7 @@
 import qualified Data.ByteString.Lazy.Char8 as L
 
 -- 아무런 데이터가 없는 경우는 L.empty를 이용하여 비어있는 파일의 경우를 테스트할 수 있다.
+highestCloseFrom :: String -> IO ()
 highestCloseFrom path = do
     contents <- L.readFile path
     print $ highestClose contents
@@ -13,7 +14,7 @@ highestClose = maximum . (Nothing:) . map closing . L.lines
 -- Prelude> (!!4) $ [1,2,3,4]
 -- *** Exception: Prelude.!!: index too large
 -- Prelude> (!!3) [1,2,3,4]
--- 4
+-- 4j
 
 closing = readPrice . (!!4) . L.split ','
 
