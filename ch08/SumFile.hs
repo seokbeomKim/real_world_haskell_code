@@ -7,9 +7,10 @@
 -- 그렇기 때문에 String 대신에 bytestring을 이용하는 것이 훨씬 효율적이다.
 
 main = do
-    contents <- getContents
-    print (sumFile contents)
-    where sumFile = sum . map read . words
+  -- getContents :: IO String
+  contents <- getContents
+  print (sumFile contents)
+  where sumFile = sum . map read . words
 
 {- sumFile 에 대한 참고 자료
 
