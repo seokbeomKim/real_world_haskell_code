@@ -1,0 +1,37 @@
+
+./append.hs,37
+(+(++)3,4
+(x(x:xs)5,6
+[] []6,7
+
+./HighestClose.hs,124
+closing closing10,11
+readPrice readPrice16,17
+highestClose highestClose26,27
+highestCloseFrom highestCloseFrom27,28
+
+./ElfMagic.hs,75
+hasElfMagic hasElfMagic14,15
+isElfFile isElfFile19,20
+main main27,28
+
+./SumFile.hs,15
+main main8,9
+
+./GlobRegex.hs,225
+module GlobRegex GlobRegex1,2
+import import3,4
+globToRegex globToRegex19,20
+globToRegex' globToRegex'30,31
+charClass charClass46,47
+escape escape53,54
+escape c | c `elem`elem54,55
+matchesGlob matchesGlob58,59
+
+./Glob.hs,175
+module Glob Glob2,3
+isPattern isPattern14,15
+doesNameExist doesNameExist17,18
+listMatches listMatches24,25
+isHidden isHidden36,37
+namesMatching namesMatching39,40
