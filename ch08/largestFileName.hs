@@ -34,6 +34,7 @@ maxSize x [] = x
 getNameAndSize' :: L.ByteString -> FileInfo
 getNameAndSize' c =
   let str = L.words c
+  -- 인덱스 연산자 이용해서 FileInfo 객체 생성
   in FileInfo (str !! 8) (read $ L.unpack (str !! 4) :: Int)
 
 findName :: FileInfo -> L.ByteString
