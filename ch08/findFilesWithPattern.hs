@@ -6,6 +6,7 @@
 
 import           Text.Regex.Posix               ( (=~) )
 import           Data.ByteString.Lazy.Char8     as L
+import Data.Char
 
 main = do
   return =<< getPatternMatchedFiles =<< getUserInput
@@ -27,4 +28,32 @@ getUserInput = do
 getPatternMatchedFiles :: UserInput -> IO [String]
 getPatternMatchedFiles input = do
   files <- L.readFile $ filename input
-  return $ fmap unpack (L.lines files)
+  let pat = patstr input
+  return $ Prelude.filter (isPatternMatched pat) $ (fmap unpack $ L.lines files)
+
+isPatternMatched :: String -> String -> Bool
+isPatternMatched pat src = (src =~ pat) :: Bool
+
+globToRegex :: String -> String
+globToRegex cs = '^' : globToRegex' cs ++ "$"
+
+globToRegex' :: String -> String
+globToRegex' ""                   = ""
+globToRegex' ('*'           : cs) = ".*" ++ globToRegex' cs
+globToRegex' ('?'           : cs) = "." ++ globToRegex' cs
+globToRegex' ('[' : '!' : c : cs) = "[^" ++ c : charClass cs
+globToRegex' ('['       : c : cs) = '[' : c : charClass cs
+globToRegex' ('['           : _ ) = error "unterminated character class"
+globToRegex' (c             : cs) = escape c ++ globToRegex' cs
+
+charClass :: String -> String
+charClass (']' : cs) = ']' : globToRegex' cs
+charClass (c   : cs) = c : charClass cs
+charClass []         = error "unterminated character class"
+
+-- escape function ensures that the regexp engine will not interpret
+-- certain characters as pieces of regular expression syntax.
+escape :: Char -> String
+escape c | c `Prelude.elem` regexChars = '\\' : [c]
+         | otherwise           = [c]
+  where regexChars = "\\+()^$.{}]|"
